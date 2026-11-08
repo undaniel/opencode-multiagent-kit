@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+# Pre-commit universal: whitespace y secretos. Sin supuestos de lenguaje.
+set -eu
+
+git diff --cached --check
+
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks git --staged --redact --no-banner; then
+    echo "pre-commit: gitleaks encontró posibles secretos."
+    exit 1
+  fi
+fi
+
+echo "pre-commit: OK"

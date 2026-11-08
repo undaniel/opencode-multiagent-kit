@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  java:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Build y tests
+        run: |
+          if [ -f ./mvnw ]; then
+            bash ./mvnw -B verify
+          elif [ -f ./gradlew ]; then
+            bash ./gradlew build
+          elif [ -f pom.xml ]; then
+            mvn -B verify
+          else
+            echo "No hay wrapper de Maven/Gradle ni pom.xml."
+            exit 1
+          fi

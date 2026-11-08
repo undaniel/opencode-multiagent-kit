@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+# Pre-commit rápido para Python. La suite completa va al CI.
+set -eu
+
+git diff --cached --check
+
+staged=$(git diff --cached --name-only --diff-filter=ACM -- '*.py' || true)
+[ -z "$staged" ] && exit 0
+
+if command -v ruff >/dev/null 2>&1; then
+  ruff check $staged
+  ruff format --check $staged
+fi
+
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks git --staged --redact --no-banner; then
+    echo "pre-commit: gitleaks encontró posibles secretos."
+    exit 1
+  fi
+fi
+
+echo "pre-commit: OK"

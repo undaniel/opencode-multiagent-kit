@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+# Pre-commit rápido para Node/TypeScript. La suite completa va al CI.
+set -eu
+
+git diff --cached --check
+
+staged=$(git diff --cached --name-only --diff-filter=ACM -- '*.js' '*.jsx' '*.ts' '*.tsx' '*.mjs' '*.cjs' || true)
+[ -z "$staged" ] && exit 0
+
+if command -v npx >/dev/null 2>&1 && npx --no-install prettier --version >/dev/null 2>&1; then
+  npx --no-install prettier --check $staged
+fi
+
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks git --staged --redact --no-banner; then
+    echo "pre-commit: gitleaks encontró posibles secretos."
+    exit 1
+  fi
+fi
+
+echo "pre-commit: OK"

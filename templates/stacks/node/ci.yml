@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Instalar dependencias
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable && pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then
+            corepack enable && yarn install --immutable
+          elif [ -f bun.lock ] || [ -f bun.lockb ]; then
+            npm install -g bun && bun install --frozen-lockfile
+          elif [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Typecheck
+        run: |
+          if [ -f tsconfig.json ]; then npx tsc --noEmit; fi
+
+      - name: Lint, tests y build
+        run: |
+          npm run lint --if-present
+          npm test --if-present
+          npm run build --if-present
+
+      - name: Auditoría de dependencias
+        run: |
+          if [ -f package-lock.json ]; then npm audit --audit-level=high; fi

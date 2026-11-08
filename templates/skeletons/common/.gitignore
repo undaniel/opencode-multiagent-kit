@@ -1,0 +1,16 @@
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Secretos
+.env
+.env.local
+.env.*.local
+
+# Editores
+.idea/
+.vscode/
+
+# Artefactos
+out/
+dist/

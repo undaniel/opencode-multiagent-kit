@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+# Pre-commit rápido para proyectos Go. Instálalo con init-project.sh.
+set -eu
+
+command -v go >/dev/null 2>&1 || { echo "pre-commit: Go no está en PATH"; exit 1; }
+
+staged=$(git diff --cached --name-only --diff-filter=ACM -- '*.go' || true)
+[ -z "$staged" ] && exit 0
+
+# 1. Formato solo de los ficheros que entran en el commit.
+unformatted=$(gofmt -l $staged || true)
+if [ -n "$unformatted" ]; then
+  echo "pre-commit: gofmt pendiente:"
+  echo "$unformatted"
+  exit 1
+fi
+
+# 2. Verificación rápida del repo.
+go vet ./...
+go test ./...
+
+# 3. Lint opcional (no bloquea si no está instalado).
+if command -v golangci-lint >/dev/null 2>&1; then
+  golangci-lint run
+fi
+
+# 4. Secretos en staging (bloquea si gitleaks está instalado).
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks git --staged --redact --no-banner; then
+    echo "pre-commit: gitleaks encontró posibles secretos (o la versión no soporta --staged)."
+    echo "Actualiza gitleaks o ejecuta el escaneo equivalente antes de commitear."
+    exit 1
+  fi
+fi
+
+echo "pre-commit: OK"
